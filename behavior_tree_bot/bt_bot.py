@@ -24,8 +24,10 @@ from planet_wars import PlanetWars, finish_turn
 def setup_behavior_tree():
 
     # Top-down construction of behavior tree
-    root = Selector(name='High Level Ordering of Strategies')
-
+    root = Sequence(name='High Level Ordering of Strategies')
+    game_continue = Selector(name='Game Over Check')
+    player_planet_check = Check(if_player_owns_a_planet)
+    enemy_planet_check = Check(if_enemy_owns_a_planet)
 
     spread_plan = Sequence(name='Spread Strategy')
     neutral_planet_check = Check(if_neutral_planet_available)
@@ -40,17 +42,17 @@ def setup_behavior_tree():
 
 
     offensive_plan = Selector(name='Offensive Strategy')
+
+    same_target_attack = Action(target_same_planet_as_enemy)
     nearest_attack = Action(attack_nearest_enemy_planet)
-    weakest_enemy_sequence = Sequence(name='Weakest Enemy Strategy')
-
-    largest_fleet_check = Check(have_largest_fleet)
+    attack_high_growth = Action(attack_high_growth_enemy_planet)
     attack_weakest = Action(attack_weakest_enemy_planet)
+    attack_strongest = Action(attack_strongest_enemy_planet)
 
+    offensive_plan.child_nodes = [nearest_attack, attack_high_growth, attack_strongest, attack_weakest]
 
-    offensive_plan.child_nodes = [nearest_attack, weakest_enemy_sequence]
-    weakest_enemy_sequence.child_nodes = [largest_fleet_check, attack_weakest]
-
-    root.child_nodes = [spread_plan, offensive_plan, attack_weakest.copy()]
+    game_continue.child_nodes = [offensive_plan, spread_plan]
+    root.child_nodes = [player_planet_check, enemy_planet_check, game_continue]
 
     logging.info('\n' + root.tree_to_string())
     return root
